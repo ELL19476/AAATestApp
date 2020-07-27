@@ -278,6 +278,7 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
                     bitmapDescriptorFromVector(this@MapsActivity, R.drawable.ic_gps_marker))}
                 .apply {title("Your location")})
                 .apply { tag = MarkerType.GPS }
+            gpsMarker?.isDraggable = false
         }.doOnError {
             Toast.makeText(this, "Please enable location services", Toast.LENGTH_LONG).show()   // onError
         }
@@ -370,7 +371,7 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
                 putExtra(
                     "markers",
                     if (gpsMarker != null)
-                        (listOf(gpsMarker!!) + markers.list)?.toSerializableArray()
+                        (markers.list + listOf(gpsMarker!!))?.toSerializableArray()
                     else
                         markers.list.toSerializableArray()
                 )
@@ -394,9 +395,11 @@ private fun <E: Marker> List<E>.toSerializableArray(): Array<MarkerData> {
     forEach {
         list.add(
             MarkerData(
-                if(it.tag == MarkerType.DEFAULT) defaultM else gpsM,
-                it.title ?: "Default Marker",
-                it.position.format()
+                lat = it.position.latitude,
+                lon = it.position.longitude,
+                resIcon = if(it.tag == MarkerType.DEFAULT) defaultM else gpsM,
+                title = it.title ?: "Default Marker",
+                location = it.position.format()
             )
         )
     }
