@@ -1,0 +1,8 @@
+<resources>
+    <string name="app_name">AAATestApp</string>
+    <string name="title_activity_maps">Map</string>
+    <string name="title_activity_list">Markers</string>
+    <string name="check">Check!</string>
+    <string name="intersection_success">You are inside the polygon!</string>
+    <string name="intersection_fail">You are not inside the polygon!</string>
+</resources>
