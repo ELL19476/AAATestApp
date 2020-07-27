@@ -38,6 +38,10 @@ abstract class SingleMarkerModel: EpoxyModelWithHolder<SingleMarkerModel.MarkerH
             imageView = itemView.ivMarker
             titleView = itemView.tvTitle
             locationView = itemView.tvLocation
+
+            itemView.setOnClickListener {
+
+            }
         }
     }
 

@@ -47,9 +47,10 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
 
     private var polygon: Polygon? = null
 
-    private var locationObserver: CompositeDisposable = CompositeDisposable()
-    var lastLocation: Location? = null
+    private var observers: CompositeDisposable = CompositeDisposable()
+    private var lastLocation: Location? = null
 
+    private var focusedMarkers = mutableListOf<Marker>()
     private var gpsMarker: Marker? = null
 
     private var wasInPolygon = false;
@@ -64,39 +65,29 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
             .findFragmentById(R.id.map) as SupportMapFragment
         mapFragment.getMapAsync(this)
 
-        fab.setOnClickListener { startActivity(
-            Intent(this, ListActivity::class.java).apply {
-            putExtra("markers",
-                if(gpsMarker != null)
-                    (listOf(gpsMarker!!) + markers.list)?.toSerializableArray()
-                else
-                    markers.list.toSerializableArray()
-            )
-        })
-            overridePendingTransition(R.anim.slide_in_right, R.anim.slide_out_left)
-        }
+        fab.setOnClickListener { transitionToList() }
         /*
-        // Initialize places
-        Places.initialize(applicationContext, getString(R.string.google_maps_key))
-        // Initialize the AutocompleteSupportFragment.
-        val autocompleteFragment =
-            supportFragmentManager.findFragmentById(R.id.autocomplete_fragment)
-                    as AutocompleteSupportFragment
+    // Initialize places
+    Places.initialize(applicationContext, getString(R.string.google_maps_key))
+    // Initialize the AutocompleteSupportFragment.
+    val autocompleteFragment =
+        supportFragmentManager.findFragmentById(R.id.autocomplete_fragment)
+                as AutocompleteSupportFragment
 
-        // Specify the types of place data to return.
-        autocompleteFragment.setPlaceFields(listOf(Place.Field.ID, Place.Field.NAME))
+    // Specify the types of place data to return.
+    autocompleteFragment.setPlaceFields(listOf(Place.Field.ID, Place.Field.NAME))
 
-        // Set up a PlaceSelectionListener to handle the response.
-        autocompleteFragment.setOnPlaceSelectedListener(object : PlaceSelectionListener {
-            override fun onPlaceSelected(place: Place) {
-                Snackbar.make(maps_parent, "Place: ${place.name}, ID: ${place.id}", Snackbar.LENGTH_SHORT).show()
-            }
+    // Set up a PlaceSelectionListener to handle the response.
+    autocompleteFragment.setOnPlaceSelectedListener(object : PlaceSelectionListener {
+        override fun onPlaceSelected(place: Place) {
+            Snackbar.make(maps_parent, "Place: ${place.name}, ID: ${place.id}", Snackbar.LENGTH_SHORT).show()
+        }
 
-            override fun onError(p0: Status) {
-                Snackbar.make(maps_parent, "An error occurred: ${p0.statusCode}", Snackbar.LENGTH_INDEFINITE).show()
-            }
-        })
-         */
+        override fun onError(p0: Status) {
+            Snackbar.make(maps_parent, "An error occurred: ${p0.statusCode}", Snackbar.LENGTH_INDEFINITE).show()
+        }
+    })
+     */
     }
 
     override fun onPause() {
@@ -117,37 +108,56 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
     override fun onMapReady(googleMap: GoogleMap) {
         mMap = googleMap
 
-        // add click event to map
-        mMap.setOnMapClickListener{ addNewMarker(it) }
-
         // find location of user
         if(ContextCompat.checkSelfPermission(applicationContext, permission) != PackageManager.PERMISSION_GRANTED)
         {
             requestPermissions(false)
         }
         else{
-            bindLocationCheck()
+            bindChanges()
         }
 
         // update polygon on drag
         mMap.setOnMarkerDragListener(object: GoogleMap.OnMarkerDragListener{
             override fun onMarkerDrag(p0: Marker?) {
                 if(p0 != null)
-                    updatePolygon(p0)
+                    markers.update(p0)
             }
 
             override fun onMarkerDragStart(p0: Marker?) {
                 if(p0 != null)
-                    updatePolygon(p0)            }
+                    markers.update(p0)
+            }
 
             override fun onMarkerDragEnd(p0: Marker?) {
                 if(p0 != null)
-                    updatePolygon(p0)
+                    markers.update(p0)
             }
         })
 
-        mMap.setOnMarkerClickListener{
-            fab.changeIcon(R.drawable.ic_edit)
+        // add click event to map
+        mMap.setOnMapClickListener{ position ->
+            addNewMarker(position)
+            unfocusMarkers()
+        }
+
+        mMap.setOnMarkerClickListener {
+            if(it != gpsMarker)
+            {
+                if(focusedMarkers.isEmpty()) {
+                    fab.setImageDrawable(getDrawable(R.drawable.ic_delete))
+                    fab.setOnClickListener { deleteMarkers() }
+                }
+                if(focusedMarkers.contains(it)) {
+                    it.setIcon(bitmapDescriptorFromVector(this@MapsActivity, R.drawable.ic_default_marker))
+                    focusedMarkers.remove(it)
+                    if(focusedMarkers.isEmpty()) unfocusMarkers()
+                }
+                else
+                    focusedMarkers.add(it.apply {
+                        it.setIcon(bitmapDescriptorFromVector(this@MapsActivity, R.drawable.ic_default_marker_focused))
+                    })
+            }
             true
         }
     }
@@ -156,7 +166,7 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults)
         if(requestCode == REQUEST_CODE_LOCATION_PERMISSION && grantResults.isNotEmpty()){
             if(grantResults[0] == PackageManager.PERMISSION_GRANTED){
-                bindLocationCheck()
+                bindChanges()
             }
             else if(lastLocation == null)
             {
@@ -166,30 +176,39 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
         }
     }
 
-    private fun bindLocationCheck() {
+    private fun bindChanges() {
         // if disposable not null: stop observing
-        locationObserver.clear()
+        observers.clear()
         // CHANGE POPUP WHEN GOS MOVES
-        locationObserver.add(getCurrentLocation()
-            .filter {
-                lastLocation == null ||
-                // if last location provided isn't better
-                !(lastLocation!!.accuracy > it.accuracy && (it.time - lastLocation!!.time) < THRESHOLD)
-            }
-            .subscribe (
-                { updatePopUp(isInPolygon(Vector(it))); lastLocation = it },    // onNext
-                { println("received an error $it") }    // onError
-            )
+        observers.add(
+            getCurrentLocation()
+                .filter {
+                    lastLocation == null ||
+                    // if last location provided isn't better
+                    !(lastLocation!!.accuracy > it.accuracy && (it.time - lastLocation!!.time) < THRESHOLD)
+                }
+                .subscribe (
+                    { updatePopUp(isInPolygon(Vector(it))); lastLocation = it },    // onNext
+                    { println("received an error $it") }    // onError
+                )
         )
 
         // CHANGE POPUP WHEN MARKERS ARE UPDATED
-        locationObserver.add(
+        observers.add(
             markers.observable
                 .filter { lastLocation != null }
                 .subscribe {
-                updatePopUp(isInPolygon(Vector(lastLocation!!)))
-            }
+                    updatePolygon()
+                    updatePopUp(isInPolygon(Vector(lastLocation!!)))
+                }
         )
+    }
+
+    private fun unfocusMarkers() {
+        fab.setImageDrawable(getDrawable(R.drawable.ic_list))
+        fab.setOnClickListener { transitionToList() }
+        focusedMarkers.forEach{it.setIcon(bitmapDescriptorFromVector(this@MapsActivity, R.drawable.ic_default_marker))}
+        focusedMarkers.clear()
     }
 
     private fun updatePopUp(inPolygon: Boolean) {
@@ -250,7 +269,6 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
                 override fun onLocationResult(locationResult: LocationResult?) {
                     locationResult ?: return
                     emitter.onNext(locationResult.lastLocation)
-                    println("updated location!!!")
                 }
             }
             fusedLocationClient.requestLocationUpdates(locationRequest, locationCallback, Looper.getMainLooper())
@@ -268,7 +286,7 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
 
     private fun addNewMarker(position: LatLng) {
         // Add a marker on click and move the camera
-        markers.add(mMap.addMarker(MarkerOptions().position(position).draggable(true).
+        markers.update(mMap.addMarker(MarkerOptions().position(position).draggable(true).
             apply { icon(bitmapDescriptorFromVector(this@MapsActivity, R.drawable.ic_default_marker)) }).
             apply { setAnchor(0.5f, 0.5f) }
             .apply { tag = MarkerType.DEFAULT }
@@ -276,8 +294,6 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
         )
 
         mMap.moveCamera(CameraUpdateFactory.newLatLng(position))
-
-        updatePolygon(markers.list.last())
     }
 
     private fun isInPolygon(point: Vector): Boolean
@@ -308,14 +324,16 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
         return BitmapDescriptorFactory.fromBitmap(bitmap)
     }
 
-    private fun updatePolygon(marker: Marker){
-        // call marker observable
-        markers.onAdd.onNext(marker)
+    private fun updatePolygon(){
+        if(markers.list.isEmpty()) {
+            polygon = null
+            return
+        }
 
         val polygonOptions = PolygonOptions()
-        for(elem in markers.list)
-        {
-            polygonOptions.add(elem.position)
+        markers.list.forEachIndexed { index, marker ->
+            polygonOptions.add(marker.position)
+            marker.title = "Marker $index"
         }
 
         polygon?.remove()
@@ -344,6 +362,27 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
 
         // u should be between 0 and 1, because it describes a line and not an endless ray; t should be positive
         return u in 0.0..1.0 && t > 0
+    }
+
+    private fun transitionToList() {
+        startActivity(
+            Intent(this, ListActivity::class.java).apply {
+                putExtra(
+                    "markers",
+                    if (gpsMarker != null)
+                        (listOf(gpsMarker!!) + markers.list)?.toSerializableArray()
+                    else
+                        markers.list.toSerializableArray()
+                )
+            }
+        )
+        overridePendingTransition(R.anim.slide_in_right, R.anim.slide_out_left)
+    }
+
+    private fun deleteMarkers(){
+        focusedMarkers.forEach { markers.remove(it); it.remove() }
+        focusedMarkers.clear()
+        unfocusMarkers()
     }
 }
 
@@ -381,14 +420,21 @@ private fun Polygon.style(context: Context) {
 
 class ObservableList<T> {
     val list: MutableList<T> = mutableListOf()
-    val onAdd: PublishSubject<T> = PublishSubject.create()
-    fun add(value: T) {
-        list.add(value)
-        onAdd.onNext(value)
+    private val onChange: PublishSubject<T> = PublishSubject.create()
+
+    fun update(value: T) {
+        if(!list.contains(value))
+            list.add(value)
+        onChange.onNext(value)
+    }
+    fun remove(value: T) {
+        list.remove(value)
+        onChange.onNext(value)
+        println("list count ${list.count()}")
     }
 
     val observable: Observable<T>
-        get() = onAdd
+        get() = onChange
 }
 
 private fun LatLng.format(): String {
