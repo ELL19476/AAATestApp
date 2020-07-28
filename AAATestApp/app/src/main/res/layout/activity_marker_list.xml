@@ -10,7 +10,7 @@
             android:id="@+id/rV_marker_list"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
-            android:paddingTop="@dimen/medium_padding"/>
+            android:paddingTop="@dimen/medium_padding" />
 
     <com.google.android.material.floatingactionbutton.FloatingActionButton
             android:id="@+id/fab"

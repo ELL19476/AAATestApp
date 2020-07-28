@@ -1,11 +1,13 @@
 package com.example.aaatestapp.markerlist
 
+import android.content.Intent
 import android.os.Bundle
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.recyclerview.widget.DividerItemDecoration
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.airbnb.epoxy.EpoxyController
+import com.example.aaatestapp.MapsActivity
 import com.example.aaatestapp.R
 import kotlinx.android.synthetic.main.activity_marker_list.*
 import kotlin.math.absoluteValue
@@ -14,7 +16,7 @@ import kotlin.math.absoluteValue
 class ListActivity: AppCompatActivity(){
 
     private lateinit var markers: Array<MarkerData>
-    private lateinit var gps: MarkerData
+    private val gps: MarkerData? = SavedMarkers.gpsMarker
 
     private var isSorted = false
 
@@ -22,9 +24,8 @@ class ListActivity: AppCompatActivity(){
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_marker_list)
 
-        markers = intent.getSerializableExtra("markers") as Array<MarkerData>
-        println("markers count recived: ${markers.count()}")
-        gps = markers.last()
+        markers = SavedMarkers.markers?: arrayOf()
+        println("markers count received: ${markers.count()}")
 
         initRecycler()
 
@@ -39,10 +40,10 @@ class ListActivity: AppCompatActivity(){
             markers.sortBy{ it.title }
             Toast.makeText(this, "sort by name", Toast.LENGTH_SHORT).show()
         }
-        else
+        else if(gps != null)
         {
-            markers.sortByDescending {m ->
-                ((gps.lat - m.lat) * (gps.lon - m.lon)).absoluteValue
+            markers.sortBy {m ->
+                ((gps.lat- m.lat) * (gps.lon - m.lon)).absoluteValue
             }
             Toast.makeText(this, "sort by distance", Toast.LENGTH_SHORT).show()
         }
@@ -54,7 +55,8 @@ class ListActivity: AppCompatActivity(){
 
     override fun onBackPressed() {
         super.onBackPressed()
-        finish();
+        startActivity(Intent(this, MapsActivity::class.java))
+        finish()
     }
 
     private fun initRecycler() {
@@ -66,14 +68,35 @@ class ListActivity: AppCompatActivity(){
 
     private fun buildModel() {
         rV_marker_list.withModels{
-            markers.forEach {
+
+            if(gps != null)
                 singleMarker {
-                    id(it.hashCode())
-                    resIcon(it.resIcon)
-                    title(it.title)
-                    location(it.location)
+                    id(gps.hashCode())
+                    markerId(-1)
+                    resIcon(gps.resIcon)
+                    title(gps.title)
+                    location(gps.location)
+                    onDetailClick(::detailActivity)
+                }
+
+            markers.forEachIndexed { index, markerData ->
+                singleMarker {
+                    id(markerData.hashCode())
+                    markerId(index)
+                    resIcon(markerData.resIcon)
+                    title(markerData.title)
+                    location(markerData.location)
+                    onDetailClick(::detailActivity)
                 }
             }
         }
+    }
+
+    private fun detailActivity(id: Int){
+        startActivity(
+            Intent(this, MarkerDetailActivity::class.java)
+                .apply { putExtra("id", id) })
+        overridePendingTransition(R.anim.slide_in_right, R.anim.slide_out_left)
+        finish()
     }
 }

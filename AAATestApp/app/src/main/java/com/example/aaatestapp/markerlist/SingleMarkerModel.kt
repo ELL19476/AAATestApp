@@ -11,7 +11,10 @@ import com.example.aaatestapp.R
 import kotlinx.android.synthetic.main.marker_list_single.view.*
 
 @EpoxyModelClass
-abstract class SingleMarkerModel: EpoxyModelWithHolder<SingleMarkerModel.MarkerHolder>() {
+abstract class SingleMarkerModel(): EpoxyModelWithHolder<SingleMarkerModel.MarkerHolder>() {
+
+    @EpoxyAttribute
+    var markerId: Int = 0
 
     @EpoxyAttribute
     var resIcon: Int = 0
@@ -21,6 +24,9 @@ abstract class SingleMarkerModel: EpoxyModelWithHolder<SingleMarkerModel.MarkerH
 
     @EpoxyAttribute
     var location: String = ""
+
+    @EpoxyAttribute
+    var onDetailClick: ((Int) -> Unit)? = null
 
     override fun bind(holder: MarkerHolder) {
         holder.imageView.setImageResource(resIcon)
@@ -40,7 +46,7 @@ abstract class SingleMarkerModel: EpoxyModelWithHolder<SingleMarkerModel.MarkerH
             locationView = itemView.tvLocation
 
             itemView.setOnClickListener {
-
+                onDetailClick?.invoke(markerId)
             }
         }
     }
