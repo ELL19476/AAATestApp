@@ -109,6 +109,13 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
             // todo select user from which to download markers
             MarkerDataHandler(contentResolver).loadMarkers { data ->
                 SavedMarkers.markers = data
+                markers.list.forEach {
+                    it.remove()
+                }
+                markers.list.clear()
+                focusedMarkers.clear()
+                polygon?.remove()
+
                 // load saved markers
                 SavedMarkers.markers?.forEach {
                     addNewMarker(it)
