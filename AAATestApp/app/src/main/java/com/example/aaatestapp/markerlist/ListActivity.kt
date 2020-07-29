@@ -1,14 +1,16 @@
 package com.example.aaatestapp.markerlist
 
+import SavedMarkers
 import android.content.Intent
 import android.os.Bundle
+import android.view.Menu
+import android.view.MenuItem
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.recyclerview.widget.DividerItemDecoration
-import androidx.recyclerview.widget.LinearLayoutManager
-import com.airbnb.epoxy.EpoxyController
-import com.example.aaatestapp.MapsActivity
 import com.example.aaatestapp.R
+import com.example.aaatestapp.networking.MarkerDataHandler
+import com.google.gson.Gson
 import kotlinx.android.synthetic.main.activity_marker_list.*
 import kotlin.math.absoluteValue
 
@@ -24,7 +26,7 @@ class ListActivity: AppCompatActivity(){
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_marker_list)
 
-        markers = SavedMarkers.markers?: arrayOf()
+        markers = SavedMarkers.markers?.copyOf()?: arrayOf()
         println("markers count received: ${markers.count()}")
 
         initRecycler()
@@ -32,6 +34,22 @@ class ListActivity: AppCompatActivity(){
         fab.setOnClickListener {
             sortMarkers()
         }
+    }
+
+    // create an action bar button
+    override fun onCreateOptionsMenu(menu: Menu?): Boolean {
+        menuInflater.inflate(R.menu.list_activity_menu, menu)
+        return super.onCreateOptionsMenu(menu)
+    }
+
+    // handle button activities
+    override fun onOptionsItemSelected(item: MenuItem): Boolean {
+        val id: Int = item.itemId
+        if (id == R.id.shareButton) {
+            uploadMarkers()
+            Toast.makeText(this, "uploading your markers...", Toast.LENGTH_LONG).show()
+        }
+        return super.onOptionsItemSelected(item)
     }
 
     private fun sortMarkers() {
@@ -55,7 +73,6 @@ class ListActivity: AppCompatActivity(){
 
     override fun onBackPressed() {
         super.onBackPressed()
-        startActivity(Intent(this, MapsActivity::class.java))
         finish()
     }
 
@@ -98,5 +115,17 @@ class ListActivity: AppCompatActivity(){
                 .apply { putExtra("id", id) })
         overridePendingTransition(R.anim.slide_in_right, R.anim.slide_out_left)
         finish()
+    }
+
+    private fun uploadMarkers() {
+        val savedMarkers = SavedMarkers.markers
+        if(savedMarkers != null && savedMarkers.count() > 0)
+        {
+            val json = Gson().toJson(savedMarkers);
+            MarkerDataHandler(contentResolver).saveMarkers(json) {
+                // todo show more user-friendly message
+                Toast.makeText(this, "Marker data successfully uploaded? $it", Toast.LENGTH_LONG).show()
+            }
+        }
     }
 }

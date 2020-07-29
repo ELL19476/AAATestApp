@@ -17,6 +17,7 @@ import com.example.aaatestapp.R
 import com.google.android.material.textfield.TextInputLayout
 import kotlinx.android.synthetic.main.activity_marker_list.*
 import kotlinx.android.synthetic.main.marker_item_detail.*
+import kotlin.math.roundToInt
 
 
 class MarkerDetailActivity: AppCompatActivity(){
@@ -69,12 +70,17 @@ class MarkerDetailActivity: AppCompatActivity(){
                     preview_image.setImageDrawable(getDrawable(icon?:-1))
                 }
             }
-            textSwitch {
-                id(this.hashCode())
-                text(getString(R.string.is_draggable))
-                checked(marker?.draggable?:true)
-                onStateChanged { draggable = it }
-            }
+            if(marker != SavedMarkers.gpsMarker)
+                textSwitch {
+                    id(this.hashCode())
+                    text(getString(R.string.is_draggable))
+                    checked(marker?.draggable?:true)
+                    onStateChanged { checked ->
+                        draggable = checked
+                        preview_image.imageAlpha = if(checked) (255 * MarkerData.ENABLED_ALPHA).roundToInt()
+                        else (255 * MarkerData.DISABLED_ALPHA).roundToInt()
+                    }
+                }
         }
 
         title_text.text = marker?.title

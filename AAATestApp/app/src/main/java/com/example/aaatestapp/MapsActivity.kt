@@ -11,11 +11,15 @@ import android.graphics.Color
 import android.location.Location
 import android.os.Bundle
 import android.os.Looper
+import android.provider.Settings
+import android.view.Menu
+import android.view.MenuItem
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import com.example.aaatestapp.markerlist.ListActivity
+import com.example.aaatestapp.networking.MarkerDataHandler
 import com.google.android.gms.location.*
 import com.google.android.gms.maps.CameraUpdateFactory
 import com.google.android.gms.maps.GoogleMap
@@ -67,6 +71,7 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
         mapFragment.getMapAsync(this)
 
         fab.setOnClickListener { transitionToList() }
+
         /*
     // Initialize places
     Places.initialize(applicationContext, getString(R.string.google_maps_key))
@@ -91,21 +96,42 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
      */
     }
 
-    override fun onPause() {
-        super.onPause()
-        if(locationCallback != null)
-            fusedLocationClient.removeLocationUpdates(locationCallback)
+    // create an action bar button
+    override fun onCreateOptionsMenu(menu: Menu?): Boolean {
+        menuInflater.inflate(R.menu.maps_activity_menu, menu)
+        return super.onCreateOptionsMenu(menu)
     }
 
-    /**
-     * Manipulates the map once available.
-     * This callback is triggered when the map is ready to be used.
-     * This is where we can add markers or lines, add listeners or move the camera. In this case,
-     * we just add a marker near Sydney, Australia.
-     * If Google Play services is not installed on the device, the user will be prompted to install
-     * it inside the SupportMapFragment. This method will only be triggered once the user has
-     * installed Google Play services and returned to the app.
-     */
+    // handle button activities
+    override fun onOptionsItemSelected(item: MenuItem): Boolean {
+        val id: Int = item.itemId
+        if (id == R.id.downloadButton) {
+            // todo select user from which to download markers
+            MarkerDataHandler(contentResolver).loadMarkers { data ->
+                SavedMarkers.markers = data
+                // load saved markers
+                SavedMarkers.markers?.forEach {
+                    addNewMarker(it)
+                }
+                updatePolygon()
+            }
+            Toast.makeText(this, "downloading your markers...", Toast.LENGTH_SHORT).show()
+        }
+        return super.onOptionsItemSelected(item)
+    }
+
+    override fun onResume() {
+        super.onResume()
+        // load saved markers
+        SavedMarkers.markers?.forEach {
+            updateMarker(it)
+        }
+        SavedMarkers.gpsMarker.let{
+            if(it != null)
+                updateMarker(it)
+        }
+    }
+
     override fun onMapReady(googleMap: GoogleMap) {
         mMap = googleMap
 
@@ -135,12 +161,6 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
                     markers.update(p0)
             }
         })
-
-        // load saved markers
-        SavedMarkers.markers?.forEach {
-            addNewMarker(it)
-        }
-        updatePolygon()
 
         // add click event to map
         mMap.setOnMapClickListener{ position ->
@@ -195,8 +215,8 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
                     !(lastLocation!!.accuracy > it.accuracy && (it.time - lastLocation!!.time) < THRESHOLD)
                 }
                 .subscribe (
-                    { updatePopUp(isInPolygon(Vector(it))); lastLocation = it },    // onNext
-                    { println("received an error $it") }    // onError
+                    { updatePopUp(isInPolygon(Vector(it))); lastLocation = it; println("update location") },    // onNext
+                    { println("an error coming up: "); throw it }    // onError
                 )
         )
 
@@ -261,7 +281,7 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
         fusedLocationClient = LocationServices.getFusedLocationProviderClient(this)
 
         // create GPS marker
-        val subject =  BehaviorSubject.create<Location>{
+        return BehaviorSubject.create<Location>{
             emitter ->
             // initial location
             fusedLocationClient.lastLocation.addOnSuccessListener{
@@ -280,17 +300,26 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
             }
             fusedLocationClient.requestLocationUpdates(locationRequest, locationCallback, Looper.getMainLooper())
         }.doOnNext{
-            gpsMarker = mMap.addMarker(MarkerOptions().position(LatLng(it.latitude, it.longitude))
-                .apply {icon(
-                    bitmapDescriptorFromVector(this@MapsActivity,
-                        SavedMarkers.markers?.first()?.resIcon?: R.drawable.ic_gps_marker))}
-                .apply {title("Your location")})
-                .apply { tag = MarkerType.GPS }
-            gpsMarker?.isDraggable = SavedMarkers.markers?.first()?.draggable?:false
-        }.doOnError {
-            Toast.makeText(this, "Please enable location services", Toast.LENGTH_LONG).show()   // onError
+            if(gpsMarker != null)
+                gpsMarker?.position = LatLng(it.latitude, it.longitude)
+            else
+                initGpsMarker(it)
         }
-        return subject
+    }
+
+    private fun initGpsMarker(position: Location) {
+        val savedGpsMarker = SavedMarkers.gpsMarker
+        gpsMarker = mMap.addMarker(MarkerOptions().position(LatLng(position.latitude, position.longitude))
+            .apply {icon(
+                bitmapDescriptorFromVector(this@MapsActivity,
+                    savedGpsMarker?.resIcon?: R.drawable.ic_gps_marker))
+            })
+            .apply {
+                title = savedGpsMarker?.title?:"Your location"
+                tag = MarkerType.GPS
+                setAnchor(0.5f, 0.5f)
+            }
+        gpsMarker?.isDraggable = savedGpsMarker?.draggable?:false
     }
 
     private fun addNewMarker(position: LatLng) {
@@ -312,13 +341,26 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
         // Add a marker on click and move the camera
         markers.update(mMap.addMarker(MarkerOptions().position(position).draggable(data.draggable).
         apply { icon(bitmapDescriptorFromVector(this@MapsActivity, data.resIcon)) }).
-        apply { setAnchor(0.5f, 0.5f) }
-            .apply { tag = MarkerType.DEFAULT }
-            .apply { title = data.title }
-        )
+        apply {
+            setAnchor(0.5f, 0.5f)
+            tag = MarkerType.DEFAULT
+            title = data.title
+        })
 
         mMap.moveCamera(CameraUpdateFactory.newLatLng(position))
 
+    }
+    private fun updateMarker(data: MarkerData) {
+        val position = LatLng(data.lat, data.lon)
+        val marker = markers.list.find { it.position == position }?: gpsMarker
+        marker ?: return
+        marker.title = data.title
+        marker.setIcon(bitmapDescriptorFromVector(this@MapsActivity, data.resIcon))
+        marker.isDraggable = data.draggable
+        if(!marker.isDraggable && marker != gpsMarker)
+            marker.alpha = MarkerData.DISABLED_ALPHA
+        else
+            marker.alpha = MarkerData.ENABLED_ALPHA
     }
 
     private fun isInPolygon(point: Vector): Boolean
@@ -390,14 +432,13 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
     }
 
     private fun transitionToList() {
+        SavedMarkers.markers = markers.list.toSerializableArray()
+        if(gpsMarker != null)
+            SavedMarkers.gpsMarker = gpsMarker?.toMarkerData(SavedMarkers.gpsMarker?.resIcon?:R.drawable.ic_gps_marker)
         startActivity(
             Intent(this, ListActivity::class.java)
         )
-        SavedMarkers.markers = markers.list.toSerializableArray()
-        if(gpsMarker != null)
-            SavedMarkers.gpsMarker = gpsMarker?.toMarkerData()
         overridePendingTransition(R.anim.slide_in_right, R.anim.slide_out_left)
-        finish()
     }
 
     private fun deleteMarkers(){
@@ -407,10 +448,10 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
     }
 }
 
-private fun Marker.toMarkerData(defaultIconId: Int = R.drawable.ic_gps_marker): MarkerData = MarkerData(
+private fun Marker.toMarkerData(iconId: Int): MarkerData = MarkerData(
     lat = this.position.latitude,
     lon = this.position.longitude,
-    resIcon = SavedMarkers?.gpsMarker?.resIcon?: defaultIconId,
+    resIcon = iconId,
     title =  this.title,
     location = this.position.format(),
     draggable = this.isDraggable
