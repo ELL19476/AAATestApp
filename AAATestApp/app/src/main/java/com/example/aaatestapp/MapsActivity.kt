@@ -1,6 +1,7 @@
 package com.example.aaatestapp
 
 import SavedMarkers
+import android.Manifest
 import android.annotation.SuppressLint
 import android.content.Context
 import android.content.Intent
@@ -11,7 +12,6 @@ import android.graphics.Color
 import android.location.Location
 import android.os.Bundle
 import android.os.Looper
-import android.provider.Settings
 import android.view.Menu
 import android.view.MenuItem
 import android.widget.Toast
@@ -19,6 +19,7 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import com.example.aaatestapp.markerlist.ListActivity
+import com.example.aaatestapp.markerlist.MarkerData
 import com.example.aaatestapp.networking.MarkerDataHandler
 import com.google.android.gms.location.*
 import com.google.android.gms.maps.CameraUpdateFactory
@@ -29,13 +30,13 @@ import com.google.android.gms.maps.model.*
 import com.google.android.material.snackbar.Snackbar
 import io.reactivex.Observable
 import io.reactivex.disposables.CompositeDisposable
+import io.reactivex.plugins.RxJavaPlugins
 import io.reactivex.subjects.BehaviorSubject
 import io.reactivex.subjects.PublishSubject
 import kotlinx.android.synthetic.main.activity_maps.*
 import java.util.*
 import kotlin.concurrent.schedule
 import kotlin.math.roundToInt
-import com.example.aaatestapp.markerlist.MarkerData as MarkerData
 
 class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
 
@@ -48,7 +49,7 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
 
     private var markers = ObservableList<Marker>()
     private lateinit var fusedLocationClient: FusedLocationProviderClient
-    private val permission = android.Manifest.permission.ACCESS_FINE_LOCATION;
+    private val permission = Manifest.permission.ACCESS_FINE_LOCATION;
 
     private var polygon: Polygon? = null
 
@@ -61,6 +62,10 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
     private var wasInPolygon = false;
 
     private var locationCallback: LocationCallback? = null
+
+    private val markerDataHandler: MarkerDataHandler by lazy {
+        MarkerDataHandler(contentResolver)
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -106,25 +111,39 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
     override fun onOptionsItemSelected(item: MenuItem): Boolean {
         val id: Int = item.itemId
         if (id == R.id.downloadButton) {
-            // todo select user from which to download markers
-            MarkerDataHandler(contentResolver).loadMarkers { data ->
-                SavedMarkers.markers = data
-                markers.list.forEach {
-                    it.remove()
-                }
-                markers.list.clear()
-                focusedMarkers.clear()
-                polygon?.remove()
-
-                // load saved markers
-                SavedMarkers.markers?.forEach {
-                    addNewMarker(it)
-                }
-                updatePolygon()
-            }
-            Toast.makeText(this, "downloading your markers...", Toast.LENGTH_SHORT).show()
+            this.asyncDialog(
+                title = "Download Markers from",
+                items = markerDataHandler.loadUsers(),
+                dataFilter = ::filterForUser,
+                loadingMessage = "loading users...",
+                failMessage = "check your internet connection",
+                positiveAction = ::downloadFromUser
+            )
         }
         return super.onOptionsItemSelected(item)
+    }
+
+    private fun filterForUser(user: String): String =
+        if(user == markerDataHandler.deviceName) "$user (You)" else user
+
+    private fun downloadFromUser(name: String?) {
+        println(name)
+        markerDataHandler.loadMarkers(name) { data ->
+            SavedMarkers.markers = data
+            markers.list.forEach {
+                it.remove()
+            }
+            markers.list.clear()
+            focusedMarkers.clear()
+            polygon?.remove()
+
+            // load saved markers
+            SavedMarkers.markers?.forEach {
+                addNewMarker(it)
+            }
+            updatePolygon()
+        }
+        Toast.makeText(this, "downloading your markers...", Toast.LENGTH_SHORT).show()
     }
 
     override fun onResume() {
@@ -216,14 +235,9 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
         // CHANGE POPUP WHEN GOS MOVES
         observers.add(
             getCurrentLocation()
-                .filter {
-                    lastLocation == null ||
-                    // if last location provided isn't better
-                    !(lastLocation!!.accuracy > it.accuracy && (it.time - lastLocation!!.time) < THRESHOLD)
-                }
                 .subscribe (
                     { updatePopUp(isInPolygon(Vector(it))); lastLocation = it; println("update location") },    // onNext
-                    { println("an error coming up: "); throw it }    // onError
+                    { println("error: ${it.message}") }    // onError
                 )
         )
 
@@ -293,9 +307,7 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
             // initial location
             fusedLocationClient.lastLocation.addOnSuccessListener{
                 println("onNext location: $it")
-                if(it == null)
-                    emitter.onError(NullPointerException())
-                else
+                if(it != null)
                     emitter.onNext(it)
             }
             // location updates

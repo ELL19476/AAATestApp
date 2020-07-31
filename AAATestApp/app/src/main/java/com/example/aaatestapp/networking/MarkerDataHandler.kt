@@ -13,13 +13,13 @@ class MarkerDataHandler(contentResolver: ContentResolver) {
     }
     private var disposables = CompositeDisposable()
 
-    private val deviceName = Settings.Secure.getString(contentResolver, "device_name")?:
+    val deviceName = Settings.Secure.getString(contentResolver, "device_name")?:
     Settings.Secure.getString(contentResolver,
         Settings.Secure.ANDROID_ID)
 
-    fun loadMarkers(user: String = deviceName, onLoad: (Array<MarkerData>?) -> Unit) {
+    fun loadMarkers(user: String? = null, onLoad: (Array<MarkerData>?) -> Unit) {
         disposables.add(
-            markerApiService.getMarkerData(user)
+            markerApiService.getMarkerData(user?:deviceName)
                 .subscribeOn(Schedulers.io())
                 .observeOn(AndroidSchedulers.mainThread())
                 .subscribe (
@@ -39,4 +39,9 @@ class MarkerDataHandler(contentResolver: ContentResolver) {
                 )
         )
     }
+
+    fun loadUsers() = markerApiService.getUsers()
+        .subscribeOn(Schedulers.io())
+        .observeOn(AndroidSchedulers.mainThread())
+        .doOnError { println(it) }
 }

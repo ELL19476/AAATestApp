@@ -5,6 +5,8 @@
     <string name="check">Check!</string>
     <string name="intersection_success">You are inside the polygon!</string>
     <string name="intersection_fail">You are not inside the polygon!</string>
+    <string name="upload_success">Markers uploaded successfully!</string>
+    <string name="upload_fail">Marker upload failed. Please try again later.</string>
     <string name="is_location_marker">Is location marker</string>
     <string name="is_draggable">Draggable</string>
     <string name="save">Save</string>
@@ -13,4 +15,8 @@
     <string name="edit_marker">Edit Marker</string>
     <string name="title_activity_detail">Edit Marker</string>
     <string name="edit_title_hint">edit  title</string>
+    <string name="global_button_ok">OK</string>
+    <string name="global_button_cancel">Cancel</string>
+    <string name="upload_start">uploading your markers...</string>
+    <string name="upload_reject">There are no markers to upload yet</string>
 </resources>

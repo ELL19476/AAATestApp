@@ -47,7 +47,6 @@ class ListActivity: AppCompatActivity(){
         val id: Int = item.itemId
         if (id == R.id.shareButton) {
             uploadMarkers()
-            Toast.makeText(this, "uploading your markers...", Toast.LENGTH_LONG).show()
         }
         return super.onOptionsItemSelected(item)
     }
@@ -121,11 +120,16 @@ class ListActivity: AppCompatActivity(){
         val savedMarkers = SavedMarkers.markers
         if(savedMarkers != null && savedMarkers.count() > 0)
         {
+            Toast.makeText(this, getString(R.string.upload_start), Toast.LENGTH_LONG).show()
+
             val json = Gson().toJson(savedMarkers);
-            MarkerDataHandler(contentResolver).saveMarkers(json) {
+            MarkerDataHandler(contentResolver).saveMarkers(json = json) {
                 // todo show more user-friendly message
-                Toast.makeText(this, "Marker data successfully uploaded? $it", Toast.LENGTH_LONG).show()
+                Toast.makeText(this, if(it)R.string.upload_success else R.string.upload_fail, Toast.LENGTH_LONG).show()
             }
+        }
+        else{
+            Toast.makeText(this, getString(R.string.upload_reject), Toast.LENGTH_LONG).show()
         }
     }
 }

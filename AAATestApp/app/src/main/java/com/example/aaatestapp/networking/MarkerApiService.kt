@@ -28,6 +28,10 @@ interface MarkerApiService {
         @Query("markers") markers: String
     ): Single<Int>
 
+    @GET("aaa.php?getUsers=true")
+    fun getUsers(
+    ): Single<Array<String>?>
+
     companion object{
         fun create(): MarkerApiService {
             val client = OkHttpClient
