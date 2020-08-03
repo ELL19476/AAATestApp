@@ -123,7 +123,7 @@ class ListActivity: AppCompatActivity(){
             Toast.makeText(this, getString(R.string.upload_start), Toast.LENGTH_LONG).show()
 
             val json = Gson().toJson(savedMarkers);
-            MarkerDataHandler(contentResolver).saveMarkers(json = json) {
+            MarkerDataHandler(contentResolver).saveMarkers(json = json ) {
                 // todo show more user-friendly message
                 Toast.makeText(this, if(it)R.string.upload_success else R.string.upload_fail, Toast.LENGTH_LONG).show()
             }

@@ -202,13 +202,15 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
                     fab.setOnClickListener { deleteMarkers() }
                 }
                 if(focusedMarkers.contains(it)) {
-                    it.setIcon(bitmapDescriptorFromVector(this@MapsActivity, R.drawable.ic_default_marker))
+                    it.setIcon(bitmapDescriptorFromVector(this@MapsActivity,
+                        if(it.tag == MarkerType.DEFAULT) R.drawable.ic_default_marker else R.drawable.ic_gps_marker))
                     focusedMarkers.remove(it)
                     if(focusedMarkers.isEmpty()) unfocusMarkers()
                 }
                 else
                     focusedMarkers.add(it.apply {
-                        it.setIcon(bitmapDescriptorFromVector(this@MapsActivity, R.drawable.ic_default_marker_focused))
+                        it.setIcon(bitmapDescriptorFromVector(this@MapsActivity,
+                            if(it.tag == MarkerType.DEFAULT) R.drawable.ic_default_marker_focused else R.drawable.ic_gps_marker_focused))
                     })
             }
             true
@@ -254,6 +256,7 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
 
     private fun unfocusMarkers() {
         fab.setImageDrawable(getDrawable(R.drawable.ic_list))
+        fab.setOnClickListener { transitionToList() }
         fab.setOnClickListener { transitionToList() }
         focusedMarkers.forEach{it.setIcon(bitmapDescriptorFromVector(this@MapsActivity, R.drawable.ic_default_marker))}
         focusedMarkers.clear()
@@ -358,22 +361,18 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
     {
         val position = LatLng(data.lat, data.lon)
         // Add a marker on click and move the camera
-        markers.update(mMap.addMarker(MarkerOptions().position(position).draggable(data.draggable).
-        apply { icon(bitmapDescriptorFromVector(this@MapsActivity, data.resIcon)) }).
-        apply {
-            setAnchor(0.5f, 0.5f)
-            tag = MarkerType.DEFAULT
-            title = data.title
-        })
-
-        mMap.moveCamera(CameraUpdateFactory.newLatLng(position))
-
+        markers.update(mMap.addMarker(MarkerOptions()
+            .position(position)
+            .anchor(0.5f, 0.5f)
+        ))
+        updateMarker(data)
     }
     private fun updateMarker(data: MarkerData) {
         val position = LatLng(data.lat, data.lon)
         val marker = markers.list.find { it.position == position }?: gpsMarker
         marker ?: return
         marker.title = data.title
+        marker.tag = if(data.resIcon == R.drawable.ic_gps_marker) MarkerType.GPS else MarkerType.DEFAULT
         marker.setIcon(bitmapDescriptorFromVector(this@MapsActivity, data.resIcon))
         marker.isDraggable = data.draggable
         if(!marker.isDraggable && marker != gpsMarker)

@@ -18,8 +18,10 @@
             android:layout_height="wrap_content"
             android:layout_margin="@dimen/big_margin"
             android:src="@drawable/ic_filter"
+            app:tint="@android:color/white"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintEnd_toEndOf="parent"
+            android:backgroundTint="?colorAccent"
             app:maxImageSize="35dp" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>
