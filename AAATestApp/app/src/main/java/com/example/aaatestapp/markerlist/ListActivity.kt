@@ -2,6 +2,7 @@ package com.example.aaatestapp.markerlist
 
 import SavedMarkers
 import android.content.Intent
+import android.graphics.Color
 import android.os.Bundle
 import android.view.Menu
 import android.view.MenuItem
@@ -10,8 +11,11 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.recyclerview.widget.DividerItemDecoration
 import com.example.aaatestapp.R
 import com.example.aaatestapp.networking.MarkerDataHandler
+import com.google.android.material.snackbar.Snackbar
 import com.google.gson.Gson
+import kotlinx.android.synthetic.main.activity_maps.*
 import kotlinx.android.synthetic.main.activity_marker_list.*
+import kotlinx.android.synthetic.main.activity_marker_list.fab
 import kotlin.math.absoluteValue
 
 
@@ -27,7 +31,6 @@ class ListActivity: AppCompatActivity(){
         setContentView(R.layout.activity_marker_list)
 
         markers = SavedMarkers.markers?.copyOf()?: arrayOf()
-        println("markers count received: ${markers.count()}")
 
         initRecycler()
 
@@ -100,6 +103,7 @@ class ListActivity: AppCompatActivity(){
                     id(markerData.hashCode())
                     markerId(index)
                     resIcon(markerData.resIcon)
+                    alpha(if(markerData.draggable) MarkerData.ENABLED_ALPHA else MarkerData.DISABLED_ALPHA)
                     title(markerData.title)
                     location(markerData.location)
                     onDetailClick(::detailActivity)
@@ -118,18 +122,26 @@ class ListActivity: AppCompatActivity(){
 
     private fun uploadMarkers() {
         val savedMarkers = SavedMarkers.markers
-        if(savedMarkers != null && savedMarkers.count() > 0)
+        savedMarkers?.forEach {
+        }
+        if(savedMarkers?.count()?:0 > 0)
         {
-            Toast.makeText(this, getString(R.string.upload_start), Toast.LENGTH_LONG).show()
-
+            val uploadMessage = Snackbar.make(clList_parent, R.string.upload_start, Snackbar.LENGTH_INDEFINITE)
+            uploadMessage.show()
             val json = Gson().toJson(savedMarkers);
             MarkerDataHandler(contentResolver).saveMarkers(json = json ) {
-                // todo show more user-friendly message
-                Toast.makeText(this, if(it)R.string.upload_success else R.string.upload_fail, Toast.LENGTH_LONG).show()
+                uploadMessage.dismiss()
+                Snackbar.make(clList_parent,
+                    if(it)R.string.upload_success else R.string.upload_fail,
+                    Snackbar.LENGTH_LONG)
+                    .setBackgroundTint(getColor(R.color.colorPrimary))
+                    .show()
             }
         }
         else{
-            Toast.makeText(this, getString(R.string.upload_reject), Toast.LENGTH_LONG).show()
+            Snackbar.make(clList_parent, R.string.upload_reject, Snackbar.LENGTH_LONG)
+                .setBackgroundTint(getColor(R.color.colorAccent))
+                .show()
         }
     }
 }

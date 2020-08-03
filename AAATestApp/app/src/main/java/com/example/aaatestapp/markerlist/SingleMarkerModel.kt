@@ -20,6 +20,9 @@ abstract class SingleMarkerModel(): EpoxyModelWithHolder<SingleMarkerModel.Marke
     var resIcon: Int = 0
 
     @EpoxyAttribute
+    var alpha: Float = 1f
+
+    @EpoxyAttribute
     var title: String = ""
 
     @EpoxyAttribute
@@ -42,6 +45,7 @@ abstract class SingleMarkerModel(): EpoxyModelWithHolder<SingleMarkerModel.Marke
 
         override fun bindView(itemView: View) {
             imageView = itemView.ivMarker
+            imageView.alpha = alpha
             titleView = itemView.tvTitle
             locationView = itemView.tvLocation
 

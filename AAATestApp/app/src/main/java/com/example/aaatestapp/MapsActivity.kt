@@ -143,7 +143,7 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
             }
             updatePolygon()
         }
-        Toast.makeText(this, "downloading your markers...", Toast.LENGTH_SHORT).show()
+        Toast.makeText(this, getString(R.string.downloading_message), Toast.LENGTH_LONG).show()
     }
 
     override fun onResume() {
@@ -416,9 +416,8 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
         }
 
         val polygonOptions = PolygonOptions()
-        markers.list.forEachIndexed { index, marker ->
+        markers.list.forEach { marker ->
             polygonOptions.add(marker.position)
-            marker.title = "Marker $index"
         }
 
         polygon?.remove()
