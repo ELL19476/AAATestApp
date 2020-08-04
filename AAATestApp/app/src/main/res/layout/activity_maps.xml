@@ -6,6 +6,16 @@
         android:id="@+id/maps_parent"
         android:animateLayoutChanges="true">
 
+    <androidx.appcompat.widget.Toolbar
+            android:id="@+id/toolbar"
+            android:layout_width="match_parent"
+            android:layout_height="?attr/actionBarSize"
+            app:titleTextColor="@color/quantum_white_100"
+            android:translationZ="1dp"
+            android:background="?colorPrimary"
+            android:foreground="?android:attr/windowContentOverlay"
+            app:theme="@style/Widget.MaterialComponents.ActionBar.Primary"/>
+
     <fragment xmlns:android="http://schemas.android.com/apk/res/android"
               xmlns:tools="http://schemas.android.com/tools"
               android:layout_width="match_parent"

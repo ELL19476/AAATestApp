@@ -50,10 +50,18 @@
         </activity>
         <activity
                 android:name=".markerlist.ListActivity"
-                android:label="@string/title_activity_list" />
+                android:label="@string/title_activity_list" >
+            <meta-data
+                    android:name="android.support.PARENT_ACTIVITY"
+                    android:value=".MapsActivity" />
+        </activity>
         <activity
                 android:name=".markerlist.MarkerDetailActivity"
-                android:label="@string/title_activity_detail" />
+                android:label="@string/title_activity_detail" >
+            <meta-data
+                    android:name="android.support.PARENT_ACTIVITY"
+                    android:value=".markerlist.ListActivity" />
+        </activity>
     </application>
 
 </manifest>

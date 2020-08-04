@@ -20,4 +20,6 @@
     <string name="upload_start">uploading your markers...</string>
     <string name="upload_reject">There are no markers to upload yet</string>
     <string name="downloading_message">Downloading markers...</string>
+    <string name="sort_by_name">sort by name</string>
+    <string name="sort_by_distance">sort by distance</string>
 </resources>

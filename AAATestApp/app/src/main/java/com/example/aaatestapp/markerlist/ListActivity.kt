@@ -1,21 +1,20 @@
 package com.example.aaatestapp.markerlist
 
 import SavedMarkers
+import android.app.Activity
 import android.content.Intent
-import android.graphics.Color
 import android.os.Bundle
 import android.view.Menu
 import android.view.MenuItem
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.app.NavUtils
 import androidx.recyclerview.widget.DividerItemDecoration
 import com.example.aaatestapp.R
 import com.example.aaatestapp.networking.MarkerDataHandler
 import com.google.android.material.snackbar.Snackbar
 import com.google.gson.Gson
-import kotlinx.android.synthetic.main.activity_maps.*
 import kotlinx.android.synthetic.main.activity_marker_list.*
-import kotlinx.android.synthetic.main.activity_marker_list.fab
 import kotlin.math.absoluteValue
 
 
@@ -26,9 +25,13 @@ class ListActivity: AppCompatActivity(){
 
     private var isSorted = false
 
+    private lateinit var sortToast: Toast
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_marker_list)
+        setSupportActionBar(findViewById(R.id.toolbar))
+        supportActionBar?.setDisplayHomeAsUpEnabled(true)
 
         markers = SavedMarkers.markers?.copyOf()?: arrayOf()
 
@@ -37,35 +40,60 @@ class ListActivity: AppCompatActivity(){
         fab.setOnClickListener {
             sortMarkers()
         }
+
+        sortToast = Toast.makeText(this, "", Toast.LENGTH_SHORT)
+    }
+
+    override fun onActivityResult(
+        requestCode: Int,
+        resultCode: Int,
+        data: Intent?
+    ) {
+        if (requestCode == REQUEST_RESTART) {
+            if (resultCode == Activity.RESULT_OK) {
+                startActivity(Intent(this, ListActivity::class.java))
+                finish()
+            }
+        }
+        super.onActivityResult(requestCode, resultCode, data)
     }
 
     // create an action bar button
     override fun onCreateOptionsMenu(menu: Menu?): Boolean {
         menuInflater.inflate(R.menu.list_activity_menu, menu)
-        return super.onCreateOptionsMenu(menu)
+        super.onCreateOptionsMenu(menu)
+        actionBar?.setDisplayHomeAsUpEnabled(true)
+        return true
     }
 
     // handle button activities
     override fun onOptionsItemSelected(item: MenuItem): Boolean {
-        val id: Int = item.itemId
-        if (id == R.id.shareButton) {
-            uploadMarkers()
+        when(item.itemId){
+            R.id.shareButton -> uploadMarkers()
+            android.R.id.home -> NavUtils.navigateUpFromSameTask(this)
+            else -> return super.onOptionsItemSelected(item)
         }
-        return super.onOptionsItemSelected(item)
+        return true
     }
 
     private fun sortMarkers() {
         if(isSorted)
         {
             markers.sortBy{ it.title }
-            Toast.makeText(this, "sort by name", Toast.LENGTH_SHORT).show()
+            sortToast.run {
+                setText(R.string.sort_by_name)
+                show()
+            }
         }
         else if(gps != null)
         {
             markers.sortBy {m ->
                 ((gps.lat- m.lat) * (gps.lon - m.lon)).absoluteValue
             }
-            Toast.makeText(this, "sort by distance", Toast.LENGTH_SHORT).show()
+            sortToast.run {
+                setText(getString(R.string.sort_by_distance))
+                show()
+            }
         }
 
         isSorted = !isSorted
@@ -113,11 +141,10 @@ class ListActivity: AppCompatActivity(){
     }
 
     private fun detailActivity(id: Int){
-        startActivity(
+        startActivityForResult(
             Intent(this, MarkerDetailActivity::class.java)
-                .apply { putExtra("id", id) })
+                .apply { putExtra("id", id) }, REQUEST_RESTART)
         overridePendingTransition(R.anim.slide_in_right, R.anim.slide_out_left)
-        finish()
     }
 
     private fun uploadMarkers() {
@@ -143,5 +170,9 @@ class ListActivity: AppCompatActivity(){
                 .setBackgroundTint(getColor(R.color.colorAccent))
                 .show()
         }
+    }
+
+    companion object{
+        const val REQUEST_RESTART: Int = -1
     }
 }

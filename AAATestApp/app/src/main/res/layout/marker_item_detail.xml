@@ -1,144 +1,159 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.constraintlayout.widget.ConstraintLayout
+<LinearLayout
         xmlns:android="http://schemas.android.com/apk/res/android"
-        xmlns:app="http://schemas.android.com/apk/res-auto"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="vertical"
         xmlns:tools="http://schemas.android.com/tools"
-        android:layout_width="match_parent" android:layout_height="match_parent">
-
-    <FrameLayout
-            android:id="@+id/title_holder"
+        xmlns:app="http://schemas.android.com/apk/res-auto"
+        tools:context=".markerlist.ListActivity">
+    <androidx.appcompat.widget.Toolbar
+            android:id="@+id/toolbar"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="@dimen/small_margin"
-            android:background="?selectableItemBackground"
-            android:paddingStart="@dimen/large_padding"
-            android:paddingEnd="@dimen/large_padding"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toTopOf="parent">
+            android:layout_height="?attr/actionBarSize"
+            app:titleTextColor="@color/quantum_white_100"
+            android:translationZ="1dp"
+            android:background="?colorPrimary"
+            android:foreground="?android:attr/windowContentOverlay"
+            app:theme="@style/Widget.MaterialComponents.ActionBar.Primary"/>
+    <androidx.constraintlayout.widget.ConstraintLayout
+            android:layout_width="match_parent" android:layout_height="match_parent">
 
-        <TextView
-                android:id="@+id/title_text"
-                style="@android:style/TextAppearance.Material.Headline"
+        <FrameLayout
+                android:id="@+id/title_holder"
                 android:layout_width="match_parent"
-                android:layout_height="match_parent"
-                android:text="Marker 1"
-                android:textAlignment="center"
-                android:textSize="36sp"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="@dimen/small_margin"
+                android:background="?selectableItemBackground"
+                android:paddingStart="@dimen/large_padding"
+                android:paddingEnd="@dimen/large_padding"
                 app:layout_constraintEnd_toEndOf="parent"
                 app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintTop_toBottomOf="@+id/header" />
+                app:layout_constraintTop_toTopOf="parent">
 
-        <ImageView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_gravity="center|right"
-                android:tint="@color/quantum_black_text"
-                app:srcCompat="@drawable/ic_edit" />
-    </FrameLayout>
+            <TextView
+                    android:id="@+id/title_text"
+                    style="@android:style/TextAppearance.Material.Headline"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:text="Marker 1"
+                    android:textAlignment="center"
+                    android:textSize="36sp"
+                    app:layout_constraintEnd_toEndOf="parent"
+                    app:layout_constraintStart_toStartOf="parent"
+                    app:layout_constraintTop_toBottomOf="@+id/header" />
 
-    <com.google.android.material.textfield.TextInputLayout
-            android:id="@+id/title_input"
-            style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox.Dense"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginHorizontal="@dimen/big_margin"
-            android:layout_marginTop="@dimen/small_margin"
-            android:textColorHint="@color/quantum_black_hint_text"
-            android:visibility="gone"
-            app:boxStrokeColor="@color/quantum_black_divider"
-            app:layout_constraintBottom_toBottomOf="@+id/title_holder"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toTopOf="parent">
+            <ImageView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="center|right"
+                    android:tint="@color/quantum_black_text"
+                    app:srcCompat="@drawable/ic_edit" />
+        </FrameLayout>
 
-        <com.google.android.material.textfield.TextInputEditText
-                android:singleLine="true"
-                android:inputType="text"
+        <com.google.android.material.textfield.TextInputLayout
+                android:id="@+id/title_input"
+                style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox.Dense"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:textAppearance="@style/TextAppearance.AppCompat.Medium" />
-    </com.google.android.material.textfield.TextInputLayout>
+                android:layout_marginHorizontal="@dimen/big_margin"
+                android:layout_marginTop="@dimen/small_margin"
+                android:textColorHint="@color/quantum_black_hint_text"
+                android:visibility="gone"
+                app:boxStrokeColor="@color/quantum_black_divider"
+                app:layout_constraintBottom_toBottomOf="@+id/title_holder"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toTopOf="parent">
 
-    <TextView
-            android:id="@+id/description"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:paddingTop="@dimen/small_padding"
-            android:text="10°N 20'1 123'' 128° N"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@+id/title_holder" />
-
-    <View
-            android:id="@+id/view"
-            android:layout_width="match_parent"
-            android:layout_height="2dp"
-            android:layout_marginHorizontal="@dimen/big_margin"
-            android:background="@color/quantum_black_divider"
-            app:layout_constraintBottom_toTopOf="@+id/rV_settings"
-            app:layout_constraintTop_toBottomOf="@+id/description"
-            tools:layout_editor_absoluteX="20dp" />
-
-    <com.airbnb.epoxy.EpoxyRecyclerView
-            android:id="@+id/rV_settings"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginVertical="@dimen/small_margin"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@+id/description" />
-
-    <View
-            android:id="@+id/view2"
-            android:layout_width="match_parent"
-            android:layout_height="2dp"
-            android:layout_marginHorizontal="@dimen/big_margin"
-            android:background="@color/quantum_black_divider"
-            app:layout_constraintBottom_toTopOf="@+id/preview"
-            app:layout_constraintTop_toBottomOf="@+id/save"
-            tools:layout_editor_absoluteX="20dp" />
-
-    <androidx.appcompat.widget.AppCompatButton
-            android:id="@+id/save"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginBottom="48dp"
-            android:text="@string/save"
-            android:backgroundTint="@color/quantum_black_text"
-            android:textColor="@color/quantum_white_100"
-            app:layout_constraintBottom_toTopOf="@+id/preview"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintStart_toStartOf="parent" />
-
-    <LinearLayout
-            android:id="@+id/preview"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:orientation="vertical"
-            android:layout_marginBottom="@dimen/big_margin"
-            app:layout_constraintBottom_toBottomOf="parent"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintStart_toStartOf="parent">
+            <com.google.android.material.textfield.TextInputEditText
+                    android:singleLine="true"
+                    android:inputType="text"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:textAppearance="@style/TextAppearance.AppCompat.Medium" />
+        </com.google.android.material.textfield.TextInputLayout>
 
         <TextView
+                android:id="@+id/description"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:paddingTop="@dimen/small_padding"
+                android:text="10°N 20'1 123'' 128° N"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toBottomOf="@+id/title_holder" />
+
+        <View
+                android:id="@+id/view"
+                android:layout_width="match_parent"
+                android:layout_height="2dp"
+                android:layout_marginHorizontal="@dimen/big_margin"
+                android:background="@color/quantum_black_divider"
+                app:layout_constraintBottom_toTopOf="@+id/rV_settings"
+                app:layout_constraintTop_toBottomOf="@+id/description"
+                tools:layout_editor_absoluteX="20dp" />
+
+        <com.airbnb.epoxy.EpoxyRecyclerView
+                android:id="@+id/rV_settings"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="@string/preview"
-                android:textAlignment="center"
+                android:layout_marginVertical="@dimen/small_margin"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toBottomOf="@+id/description" />
 
-                android:textAllCaps="true"
-                android:textSize="@dimen/text_size" />
+        <View
+                android:id="@+id/view2"
+                android:layout_width="match_parent"
+                android:layout_height="2dp"
+                android:layout_marginHorizontal="@dimen/big_margin"
+                android:background="@color/quantum_black_divider"
+                app:layout_constraintBottom_toTopOf="@+id/preview"
+                app:layout_constraintTop_toBottomOf="@+id/save"
+                tools:layout_editor_absoluteX="20dp" />
+
+        <androidx.appcompat.widget.AppCompatButton
+                android:id="@+id/save"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="48dp"
+                android:text="@string/save"
+                android:backgroundTint="@color/quantum_black_text"
+                android:textColor="@color/quantum_white_100"
+                app:layout_constraintBottom_toTopOf="@+id/preview"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintStart_toStartOf="parent" />
+
+        <LinearLayout
+                android:id="@+id/preview"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:layout_marginBottom="@dimen/big_margin"
+                app:layout_constraintBottom_toBottomOf="parent"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintStart_toStartOf="parent">
+
+            <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="@string/preview"
+                    android:textAlignment="center"
+
+                    android:textAllCaps="true"
+                    android:textSize="@dimen/text_size" />
 
 
-        <ImageView
-                android:id="@+id/preview_image"
-                android:layout_width="48dp"
-                android:layout_height="48dp"
-                android:layout_gravity="center"
-                android:padding="@dimen/small_padding"
-                app:srcCompat="@drawable/ic_default_marker"
-                android:contentDescription="@string/the_preview_of_the_marker_icon" />
+            <ImageView
+                    android:id="@+id/preview_image"
+                    android:layout_width="48dp"
+                    android:layout_height="48dp"
+                    android:layout_gravity="center"
+                    android:padding="@dimen/small_padding"
+                    app:srcCompat="@drawable/ic_default_marker"
+                    android:contentDescription="@string/the_preview_of_the_marker_icon" />
 
-    </LinearLayout>
-</androidx.constraintlayout.widget.ConstraintLayout>
+        </LinearLayout>
+    </androidx.constraintlayout.widget.ConstraintLayout>
+</LinearLayout>

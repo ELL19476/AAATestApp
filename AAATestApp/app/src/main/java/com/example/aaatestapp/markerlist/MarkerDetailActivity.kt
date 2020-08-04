@@ -1,6 +1,7 @@
 package com.example.aaatestapp.markerlist
 
 import SavedMarkers
+import android.app.Activity
 import android.content.Context
 import android.content.Intent
 import android.os.Bundle
@@ -11,11 +12,9 @@ import android.view.inputmethod.InputMethodManager
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.isVisible
 import androidx.core.widget.addTextChangedListener
-import androidx.recyclerview.widget.DividerItemDecoration
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.example.aaatestapp.R
 import com.google.android.material.textfield.TextInputLayout
-import kotlinx.android.synthetic.main.activity_marker_list.*
 import kotlinx.android.synthetic.main.marker_item_detail.*
 import kotlin.math.roundToInt
 
@@ -32,6 +31,8 @@ class MarkerDetailActivity: AppCompatActivity(){
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.marker_item_detail)
+        setSupportActionBar(findViewById(R.id.toolbar))
+        supportActionBar?.setDisplayHomeAsUpEnabled(true)
         println("Hello from ${this::class.simpleName}")
 
         markerIndex = intent.getSerializableExtra("id") as Int
@@ -46,13 +47,14 @@ class MarkerDetailActivity: AppCompatActivity(){
             startActivity(Intent(this, ListActivity::class.java))
             overridePendingTransition(R.anim.slide_in_left, R.anim.slide_out_right)
             saveTitle()
+            setResult(RESULT_OK, null);
             finish()
         }
     }
 
     override fun onBackPressed() {
         super.onBackPressed()
-        startActivity(Intent(this, ListActivity::class.java))
+        setResult(Activity.RESULT_CANCELED, null);
         finish()
     }
 
