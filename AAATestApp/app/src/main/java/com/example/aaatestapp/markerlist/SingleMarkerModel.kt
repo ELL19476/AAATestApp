@@ -1,5 +1,6 @@
 package com.example.aaatestapp.markerlist
 
+import android.graphics.Bitmap
 import android.view.View
 import android.widget.ImageView
 import android.widget.TextView
@@ -20,6 +21,9 @@ abstract class SingleMarkerModel(): EpoxyModelWithHolder<SingleMarkerModel.Marke
     var resIcon: Int = 0
 
     @EpoxyAttribute
+    var bitmap: Bitmap? = null
+
+    @EpoxyAttribute
     var alpha: Float = 1f
 
     @EpoxyAttribute
@@ -32,7 +36,10 @@ abstract class SingleMarkerModel(): EpoxyModelWithHolder<SingleMarkerModel.Marke
     var onDetailClick: ((Int) -> Unit)? = null
 
     override fun bind(holder: MarkerHolder) {
-        holder.imageView.setImageResource(resIcon)
+        if(bitmap != null)
+            holder.imageView.setImageBitmap(bitmap)
+        else
+            holder.imageView.setImageResource(resIcon)
         holder.titleView.text = title
         holder.locationView.text = location
     }

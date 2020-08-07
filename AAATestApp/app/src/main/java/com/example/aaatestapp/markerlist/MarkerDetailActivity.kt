@@ -4,20 +4,27 @@ import SavedMarkers
 import android.app.Activity
 import android.content.Context
 import android.content.Intent
+import android.graphics.BitmapFactory
+import android.net.Uri
 import android.os.Bundle
 import android.text.Editable
 import android.view.View
 import android.view.inputmethod.EditorInfo
 import android.view.inputmethod.InputMethodManager
+import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.graphics.scale
 import androidx.core.view.isVisible
 import androidx.core.widget.addTextChangedListener
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.example.aaatestapp.R
 import com.google.android.material.textfield.TextInputLayout
 import kotlinx.android.synthetic.main.marker_item_detail.*
+import java.io.FileNotFoundException
+import java.io.InputStream
 import kotlin.math.roundToInt
 
+// TODO: SHOW CUSTOM BITMAP if it exists
 
 class MarkerDetailActivity: AppCompatActivity(){
 
@@ -27,6 +34,10 @@ class MarkerDetailActivity: AppCompatActivity(){
     private var draggable: Boolean? = null
 
     private var marker: MarkerData? = null
+
+    companion object{
+        const val RESULT_LOAD_IMAGE = 1
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -44,11 +55,17 @@ class MarkerDetailActivity: AppCompatActivity(){
         save.setOnClickListener {
             if(draggable != null) marker?.draggable = draggable?:true
             if(icon != null) marker?.resIcon = icon?:-1
-            startActivity(Intent(this, ListActivity::class.java))
-            overridePendingTransition(R.anim.slide_in_left, R.anim.slide_out_right)
             saveTitle()
-            setResult(RESULT_OK, null);
+
+            overridePendingTransition(R.anim.slide_in_left, R.anim.slide_out_right)
+            setResult(Activity.RESULT_OK, null);
             finish()
+        }
+
+        imagePicker.setOnClickListener {
+            val picker = Intent(Intent.ACTION_GET_CONTENT)
+            picker.type = "image/*"
+            startActivityForResult(picker, RESULT_LOAD_IMAGE)
         }
     }
 
@@ -137,6 +154,27 @@ class MarkerDetailActivity: AppCompatActivity(){
         {
             title_text.text = input
             marker?.title = input.toString()
+        }
+    }
+
+    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        super.onActivityResult(requestCode, resultCode, data)
+        if (resultCode == Activity.RESULT_OK && data != null) {
+            try {
+                val imageUri: Uri = data.data
+                val imageStream: InputStream = contentResolver.openInputStream(imageUri)
+                val selectedImage = BitmapFactory.decodeStream(imageStream)
+
+                ivUpload.setImageBitmap(selectedImage)
+                marker?.bitmap = selectedImage
+
+                ivUpload.isVisible = true
+            } catch (e: FileNotFoundException) {
+                e.printStackTrace()
+                Toast.makeText(this, "Something went wrong", Toast.LENGTH_LONG).show()
+            }
+        } else {
+            Toast.makeText(this, "You haven't picked Image", Toast.LENGTH_LONG).show()
         }
     }
 }

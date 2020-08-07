@@ -1,18 +1,12 @@
-package com.example.aaatestapp
+package com.example.aaatestapp.ext
 
 import android.content.Context
-import android.graphics.Color
-import android.graphics.drawable.ColorDrawable
-import android.view.LayoutInflater
-import android.view.View
 import android.widget.ArrayAdapter
 import androidx.annotation.StringRes
 import androidx.appcompat.app.AlertDialog
 import com.example.aaatestapp.R
-import io.reactivex.Observable
 import io.reactivex.Single
 import io.reactivex.disposables.Disposable
-import okhttp3.internal.notify
 
 fun Context.asyncDialog(
     title: String? = null,

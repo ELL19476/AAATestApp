@@ -61,6 +61,11 @@
             <meta-data
                     android:name="android.support.PARENT_ACTIVITY"
                     android:value=".markerlist.ListActivity" />
+            <intent-filter>
+                <action android:name="android.intent.action.GET_CONTENT" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:mimeType="image/*" />
+            </intent-filter>
         </activity>
     </application>
 

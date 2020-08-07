@@ -17,6 +17,8 @@ import com.google.gson.Gson
 import kotlinx.android.synthetic.main.activity_marker_list.*
 import kotlin.math.absoluteValue
 
+// TODO: SET IMAGE TO CUSTOM DRAWABLE if it exists
+// TODO: SCALE CUSTOM BITMAP
 
 class ListActivity: AppCompatActivity(){
 
@@ -44,12 +46,9 @@ class ListActivity: AppCompatActivity(){
         sortToast = Toast.makeText(this, "", Toast.LENGTH_SHORT)
     }
 
-    override fun onActivityResult(
-        requestCode: Int,
-        resultCode: Int,
-        data: Intent?
-    ) {
-        if (requestCode == REQUEST_RESTART) {
+    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        if (requestCode == LAUNCH_MARKER_DETAIL) {
+            // if saved markers, restart activity
             if (resultCode == Activity.RESULT_OK) {
                 startActivity(Intent(this, ListActivity::class.java))
                 finish()
@@ -70,7 +69,7 @@ class ListActivity: AppCompatActivity(){
     override fun onOptionsItemSelected(item: MenuItem): Boolean {
         when(item.itemId){
             R.id.shareButton -> uploadMarkers()
-            android.R.id.home -> NavUtils.navigateUpFromSameTask(this)
+            android.R.id.home -> finish()
             else -> return super.onOptionsItemSelected(item)
         }
         return true
@@ -120,7 +119,8 @@ class ListActivity: AppCompatActivity(){
                 singleMarker {
                     id(gps.hashCode())
                     markerId(-1)
-                    resIcon(gps.resIcon)
+                    if(gps.bitmap != null) bitmap(gps.bitmap)
+                    else resIcon(gps.resIcon)
                     title(gps.title)
                     location(gps.location)
                     onDetailClick(::detailActivity)
@@ -143,7 +143,7 @@ class ListActivity: AppCompatActivity(){
     private fun detailActivity(id: Int){
         startActivityForResult(
             Intent(this, MarkerDetailActivity::class.java)
-                .apply { putExtra("id", id) }, REQUEST_RESTART)
+                .apply { putExtra("id", id) }, LAUNCH_MARKER_DETAIL)
         overridePendingTransition(R.anim.slide_in_right, R.anim.slide_out_left)
     }
 
@@ -173,6 +173,6 @@ class ListActivity: AppCompatActivity(){
     }
 
     companion object{
-        const val REQUEST_RESTART: Int = -1
+        const val LAUNCH_MARKER_DETAIL: Int = 666
     }
 }
