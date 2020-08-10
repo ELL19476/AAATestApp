@@ -18,13 +18,14 @@ import androidx.core.view.isVisible
 import androidx.core.widget.addTextChangedListener
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.example.aaatestapp.R
+import com.example.aaatestapp.networking.MarkerDataHandler
 import com.google.android.material.textfield.TextInputLayout
 import kotlinx.android.synthetic.main.marker_item_detail.*
 import java.io.FileNotFoundException
 import java.io.InputStream
 import kotlin.math.roundToInt
 
-// TODO: SHOW CUSTOM BITMAP if it exists
+// DONE: SHOW CUSTOM BITMAP if it exists - done
 
 class MarkerDetailActivity: AppCompatActivity(){
 
@@ -44,7 +45,6 @@ class MarkerDetailActivity: AppCompatActivity(){
         setContentView(R.layout.marker_item_detail)
         setSupportActionBar(findViewById(R.id.toolbar))
         supportActionBar?.setDisplayHomeAsUpEnabled(true)
-        println("Hello from ${this::class.simpleName}")
 
         markerIndex = intent.getSerializableExtra("id") as Int
         marker = SavedMarkers.markers?.getOrNull(markerIndex)?:SavedMarkers.gpsMarker
@@ -126,6 +126,8 @@ class MarkerDetailActivity: AppCompatActivity(){
             }
             this.imeOptions = this.imeOptions or EditorInfo.IME_ACTION_DONE
         }
+
+        preview_image.setImageBitmap(marker?.bitmap)
     }
 
     private fun updateSaveButton(text: Editable?) {
@@ -157,16 +159,17 @@ class MarkerDetailActivity: AppCompatActivity(){
         }
     }
 
+    // save custom drawable
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         super.onActivityResult(requestCode, resultCode, data)
         if (resultCode == Activity.RESULT_OK && data != null) {
             try {
-                val imageUri: Uri = data.data
-                val imageStream: InputStream = contentResolver.openInputStream(imageUri)
+                val imageUri: Uri = data.data?:return
+                val imageStream: InputStream = contentResolver.openInputStream(imageUri)?:return
                 val selectedImage = BitmapFactory.decodeStream(imageStream)
 
                 ivUpload.setImageBitmap(selectedImage)
-                marker?.bitmap = selectedImage
+                marker?.bitmap = selectedImage?.scale(MarkerDataHandler.BITMAP_SIZE, MarkerDataHandler.BITMAP_SIZE)
 
                 ivUpload.isVisible = true
             } catch (e: FileNotFoundException) {

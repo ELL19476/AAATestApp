@@ -6,29 +6,34 @@ import com.ihsanbal.logging.Level
 import com.ihsanbal.logging.LoggingInterceptor
 import io.reactivex.Observable
 import io.reactivex.Single
+import okhttp3.MultipartBody
 import okhttp3.OkHttpClient
-import retrofit2.Response
 import retrofit2.Retrofit
 import retrofit2.adapter.rxjava2.RxJava2CallAdapterFactory
 import retrofit2.converter.gson.GsonConverterFactory
-import retrofit2.http.GET
-import retrofit2.http.Headers
-import retrofit2.http.POST
-import retrofit2.http.Query
+import retrofit2.http.*
 
 interface MarkerApiService {
-    @GET("aaa.php")
+    @GET(UPLOAD_URL)
     fun getMarkerData(
         @Query("user") user: String
-    ): Single<Array<MarkerData>>
+    ): Single<Array<MarkerData>?>
 
-    @GET("aaa.php")
+    @GET(UPLOAD_URL)
     fun saveMarkerData(
         @Query("user") user: String,
         @Query("markers") markers: String
     ): Single<Int>
 
-    @GET("aaa.php?getUsers=true")
+    @Multipart
+    @POST(IMAGE_UPLOAD_URL)
+    fun saveMarkerIcon(
+        @Part("user") user: String,
+        @Part("markerIndex") index: Int,
+        @Part image: MultipartBody.Part
+    ): Observable<Int>
+
+    @GET("$UPLOAD_URL?getUsers=true")
     fun getUsers(
     ): Single<Array<String>?>
 
@@ -43,7 +48,7 @@ interface MarkerApiService {
                 .build()
 
             val retrofit = Retrofit.Builder()
-                .baseUrl("http://samuel.ellmauer.eu/")
+                .baseUrl(BASE_URL)
                 .addCallAdapterFactory(
                     RxJava2CallAdapterFactory.createAsync())
                 .addConverterFactory(
@@ -52,6 +57,11 @@ interface MarkerApiService {
                 .build()
 
             return retrofit.create(MarkerApiService::class.java)
-}
-}
+        }
+
+        const val BASE_URL = "http://samuel.ellmauer.eu/"
+        const val DIRECTORY = "aaa"
+        private const val UPLOAD_URL = "$DIRECTORY/aaa.php"
+        private const val IMAGE_UPLOAD_URL = "$DIRECTORY/saveIcon.php"
+    }
 }

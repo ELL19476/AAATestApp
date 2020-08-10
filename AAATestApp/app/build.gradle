@@ -74,4 +74,7 @@ dependencies {
     implementation('com.github.ihsanbal:LoggingInterceptor:3.1.0') {
         exclude group: 'org.json', module: 'json'
     }
+
+    // picasso
+    implementation 'com.squareup.picasso:picasso:2.71828'
 }

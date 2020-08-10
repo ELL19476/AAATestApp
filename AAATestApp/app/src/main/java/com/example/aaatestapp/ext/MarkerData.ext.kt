@@ -1,5 +1,6 @@
 package com.example.aaatestapp.ext
 
+import SavedMarkers
 import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.Canvas
@@ -11,10 +12,14 @@ import com.example.aaatestapp.markerlist.MarkerData
 import com.google.android.gms.maps.model.BitmapDescriptor
 import com.google.android.gms.maps.model.BitmapDescriptorFactory
 import com.google.android.gms.maps.model.Marker
+import kotlin.math.roundToInt
+
+const val ICON_SIZE = 24
+const val SCALE_FACTOR = 1.2f
 
 fun MarkerData?.getIcon(context: Context): BitmapDescriptor? {
     return if(this?.bitmap != null)
-        BitmapDescriptorFactory.fromBitmap(this.bitmap?.scale(MarkerData.DEFAULT_ICON_SIZE, MarkerData.DEFAULT_ICON_SIZE))
+        BitmapDescriptorFactory.fromBitmap(this.bitmap?.scaleToIcon(context))
     else
         bitmapDescriptorFromVector(
             context,
@@ -22,11 +27,24 @@ fun MarkerData?.getIcon(context: Context): BitmapDescriptor? {
         )
 }
 
-fun bitmapDescriptorFromVector(context: Context, vectorResId: Int): BitmapDescriptor {
-    val vectorDrawable = ContextCompat.getDrawable(context, vectorResId)
-    vectorDrawable!!.setBounds(0, 0, vectorDrawable.intrinsicWidth, vectorDrawable.intrinsicHeight)
+fun MarkerData?.getIconLarger(context: Context): BitmapDescriptor? {
+    return if(this?.bitmap != null)
+        BitmapDescriptorFactory.fromBitmap(this.bitmap?.scaleToIcon(context, SCALE_FACTOR))
+    else
+        bitmapDescriptorFromVector(
+            context,
+            this?.resIcon ?: R.drawable.ic_gps_marker,
+            SCALE_FACTOR
+        )
+}
+
+fun bitmapDescriptorFromVector(context: Context, vectorResId: Int, factor: Float = 1f): BitmapDescriptor? {
+    val vectorDrawable = ContextCompat.getDrawable(context, vectorResId)?:return null
+    val width = (vectorDrawable.intrinsicWidth * factor).roundToInt()
+    val height = (vectorDrawable.intrinsicHeight * factor).roundToInt()
+    vectorDrawable.setBounds(0, 0, width, height)
     val bitmap =
-        Bitmap.createBitmap(vectorDrawable.intrinsicWidth, vectorDrawable.intrinsicHeight, Bitmap.Config.ARGB_8888)
+        Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
     val canvas = Canvas(bitmap)
     vectorDrawable.draw(canvas)
     return BitmapDescriptorFactory.fromBitmap(bitmap)
@@ -42,7 +60,7 @@ fun Marker.toMarkerData(iconId: Int, bitmap: Bitmap? = null): MarkerData = Marke
     draggable = this.isDraggable
 )
 
-fun <E: Marker> List<E>.toSerializableArrayWith(markerBitmaps: List<Bitmap?>): Array<MarkerData> {
+fun List<Marker>.toSerializableArray(): Array<MarkerData> {
     val list: MutableList<MarkerData> = mutableListOf()
     val defaultM = R.drawable.ic_default_marker
     val gpsM = R.drawable.ic_gps_marker
@@ -51,9 +69,21 @@ fun <E: Marker> List<E>.toSerializableArrayWith(markerBitmaps: List<Bitmap?>): A
         list.add(
             it.toMarkerData(
                 if(it.tag == MarkerType.DEFAULT) defaultM else gpsM,
-                markerBitmaps.getOrNull(i)
+                SavedMarkers.markers?.getOrNull(i)?.bitmap
             )
         )
     }
     return list.toTypedArray()
+}
+
+fun Bitmap?.scaleToIcon(context: Context): Bitmap?
+{
+    val size = ICON_SIZE * context.resources.displayMetrics.density.toInt()
+    return this?.scale(size, size)
+}
+
+fun Bitmap?.scaleToIcon(context: Context, factor: Float): Bitmap?
+{
+    val size = (ICON_SIZE * factor * context.resources.displayMetrics.density).roundToInt()
+    return this?.scale(size, size)
 }

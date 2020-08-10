@@ -1,25 +1,33 @@
 package com.example.aaatestapp.managers
 
+import SavedMarkers
 import android.content.Context
 import android.graphics.Bitmap
+import android.graphics.drawable.Drawable
 import android.location.Location
+import android.net.Uri
 import android.widget.Toast
 import com.example.aaatestapp.MarkerType
 import com.example.aaatestapp.R
 import com.example.aaatestapp.ext.*
 import com.example.aaatestapp.markerlist.MarkerData
+import com.example.aaatestapp.networking.MarkerApiService.Companion.BASE_URL
+import com.example.aaatestapp.networking.MarkerApiService.Companion.DIRECTORY
 import com.example.aaatestapp.networking.MarkerDataHandler
+import com.example.aaatestapp.networking.MarkerDataHandler.Companion.EXT
+import com.example.aaatestapp.networking.MarkerDataHandler.Companion.ICON_PREFIX
 import com.google.android.gms.maps.GoogleMap
 import com.google.android.gms.maps.model.LatLng
 import com.google.android.gms.maps.model.Marker
 import com.google.android.gms.maps.model.MarkerOptions
+import com.squareup.picasso.Picasso
+import com.squareup.picasso.Target
 import io.reactivex.disposables.Disposable
+import java.lang.Exception
 
-// TODO: FOCUS AND DEFOCUS WITH DRAWABLE SCALE INSTEAD OF NEW DRAWABLE
-// TODO: on download marker SET CUSTOM BITMAP if it exists
+// TODO: USE ID NOT POSITION TO IDENTIFY MARKER (breaks when dragged)
 
 class MarkerManager(private val context: Context, private val mMap: GoogleMap) {
-    val markerBitmaps = mutableListOf<Bitmap?>()
     var markers = ObservableList<Marker>()
 
     var focused = mutableListOf<Marker>()
@@ -58,30 +66,21 @@ class MarkerManager(private val context: Context, private val mMap: GoogleMap) {
         // add click event to map
         mMap.setOnMapClickListener{ position ->
             addNew(position)
-            unfocus()
+            unfocusAll()
         }
 
-        mMap.setOnMarkerClickListener {
-            println("CLICK!")
-            if(it != gps)
+        mMap.setOnMarkerClickListener { marker ->
+            if(marker != gps)
             {
-                if(focused.contains(it)) {
-                    it.setIcon(
-                        bitmapDescriptorFromVector(
-                            context,
-                            if (it.tag == MarkerType.DEFAULT) R.drawable.ic_default_marker else R.drawable.ic_gps_marker
-                        )
-                    )
-                    focused.remove(it)
-                    if(focused.isEmpty()) unfocus()
+                if(focused.contains(marker)) {
+                    unfocus(marker)
+                    if(focused.isEmpty()) onUnfocusMarkers?.invoke()
                 }
                 else
-                    focused.add(it.apply {
-                        it.setIcon(
-                            bitmapDescriptorFromVector(
-                                context,
-                                if (it.tag == MarkerType.DEFAULT) R.drawable.ic_default_marker_focused else R.drawable.ic_gps_marker_focused
-                            )
+                    focused.add(marker.apply {
+                        marker.setIcon(
+                            SavedMarkers.markers?.find { LatLng(it.lat, it.lon) == position }?.getIconLarger(context) ?:
+                            bitmapDescriptorFromVector(context, R.drawable.ic_default_marker, SCALE_FACTOR)
                         )
                     })
             }
@@ -107,11 +106,26 @@ class MarkerManager(private val context: Context, private val mMap: GoogleMap) {
             focused.clear()
 
             // load saved markers
-            SavedMarkers.markers?.forEach {
-                addNew(it)
+            SavedMarkers.markers?.forEachIndexed {index, markerData ->
+                addNew(markerData)
+                println("\"$BASE_URL$DIRECTORY/$ICON_PREFIX-${name ?: dataHandler.deviceName}-$index$EXT\"")
+                Picasso.get()
+                    .load(Uri.parse("$BASE_URL$DIRECTORY/$ICON_PREFIX-${name?:dataHandler.deviceName}-$index$EXT"))
+                    .into(object: Target{
+                        override fun onPrepareLoad(placeHolderDrawable: Drawable?) {}
+
+                        override fun onBitmapFailed(e: Exception?, errorDrawable: Drawable?) {
+                            println("EXCEPTION: ${e?.message}")
+                        }
+
+                        override fun onBitmapLoaded(bitmap: Bitmap?, from: Picasso.LoadedFrom?) {
+                            markerData.bitmap = bitmap
+                            update(markerData)
+                        }
+                    })
             }
         }
-        Toast.makeText(context, context.getString(R.string.downloading_message), Toast.LENGTH_LONG).show()
+        Toast.makeText(context, context.getString(R.string.downloading_message), Toast.LENGTH_SHORT).show()
     }
 
     fun initGpsMarker(position: Location) {
@@ -144,7 +158,7 @@ class MarkerManager(private val context: Context, private val mMap: GoogleMap) {
 
     fun save()
     {
-        SavedMarkers.markers = markers.list.toSerializableArrayWith(markerBitmaps)
+        SavedMarkers.markers = markers.list.toSerializableArray()
         if(gps != null)
             SavedMarkers.gpsMarker = gps?.toMarkerData(
                 SavedMarkers.gpsMarker?.resIcon?:R.drawable.ic_gps_marker,
@@ -154,12 +168,11 @@ class MarkerManager(private val context: Context, private val mMap: GoogleMap) {
 
     fun deleteAll(){
         focused.forEach {
-            markerBitmaps.removeAt(markers.list.indexOf(it))
             markers.remove(it)
             it.remove()
         }
         focused.clear()
-        unfocus()
+        unfocusAll()
     }
 
     fun setOnUnfocusListener(value: () -> Unit){
@@ -195,7 +208,6 @@ class MarkerManager(private val context: Context, private val mMap: GoogleMap) {
             .position(position)
             .anchor(0.5f, 0.5f)
         ))
-        markerBitmaps.add(data.bitmap)
 
         update(data)
     }
@@ -216,14 +228,21 @@ class MarkerManager(private val context: Context, private val mMap: GoogleMap) {
             marker.alpha = MarkerData.ENABLED_ALPHA
     }
 
-    private fun unfocus() {
+    private fun unfocusAll() {
         onUnfocusMarkers?.invoke()
-        focused.forEach{it.setIcon(
-            bitmapDescriptorFromVector(
-                context,
-                R.drawable.ic_default_marker
+        focused.forEach{ marker ->
+            marker.setIcon(
+                SavedMarkers.markers?.find { LatLng(it.lat, it.lon) == marker.position }?.getIcon(context)?:
+                bitmapDescriptorFromVector(context, R.drawable.ic_default_marker)
             )
-        )}
+        }
         focused.clear()
+    }
+    private fun unfocus(marker: Marker) {
+        marker.setIcon(
+            SavedMarkers.markers?.find { LatLng(it.lat, it.lon) == marker.position }?.getIcon(context)?:
+            bitmapDescriptorFromVector(context, R.drawable.ic_default_marker)
+        )
+        focused.remove(marker)
     }
 }

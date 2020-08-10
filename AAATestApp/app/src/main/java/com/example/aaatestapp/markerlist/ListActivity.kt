@@ -3,22 +3,26 @@ package com.example.aaatestapp.markerlist
 import SavedMarkers
 import android.app.Activity
 import android.content.Intent
+import android.graphics.Bitmap
 import android.os.Bundle
 import android.view.Menu
 import android.view.MenuItem
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
-import androidx.core.app.NavUtils
+import androidx.core.graphics.scale
 import androidx.recyclerview.widget.DividerItemDecoration
 import com.example.aaatestapp.R
+import com.example.aaatestapp.ext.scaleToIcon
 import com.example.aaatestapp.networking.MarkerDataHandler
 import com.google.android.material.snackbar.Snackbar
 import com.google.gson.Gson
 import kotlinx.android.synthetic.main.activity_marker_list.*
+import java.io.ByteArrayOutputStream
 import kotlin.math.absoluteValue
 
-// TODO: SET IMAGE TO CUSTOM DRAWABLE if it exists
-// TODO: SCALE CUSTOM BITMAP
+
+// DONE: SET IMAGE TO CUSTOM DRAWABLE if it exists - check
+// DONE: SCALE CUSTOM BITMAP - check
 
 class ListActivity: AppCompatActivity(){
 
@@ -119,7 +123,7 @@ class ListActivity: AppCompatActivity(){
                 singleMarker {
                     id(gps.hashCode())
                     markerId(-1)
-                    if(gps.bitmap != null) bitmap(gps.bitmap)
+                    if(gps.bitmap != null) bitmap(gps.bitmap?.scaleToIcon(this@ListActivity))
                     else resIcon(gps.resIcon)
                     title(gps.title)
                     location(gps.location)
@@ -130,7 +134,8 @@ class ListActivity: AppCompatActivity(){
                 singleMarker {
                     id(markerData.hashCode())
                     markerId(index)
-                    resIcon(markerData.resIcon)
+                    if(markerData.bitmap != null) bitmap(markerData.bitmap?.scaleToIcon(this@ListActivity))
+                    else resIcon(markerData.resIcon)
                     alpha(if(markerData.draggable) MarkerData.ENABLED_ALPHA else MarkerData.DISABLED_ALPHA)
                     title(markerData.title)
                     location(markerData.location)
@@ -148,15 +153,40 @@ class ListActivity: AppCompatActivity(){
     }
 
     private fun uploadMarkers() {
-        val savedMarkers = SavedMarkers.markers
-        savedMarkers?.forEach {
-        }
+        // deepcopy saved markers
+        val savedMarkers = Gson().toJson(SavedMarkers.markers)
+            .run { Gson().fromJson(this, Array<MarkerData>::class.java) }
+
         if(savedMarkers?.count()?:0 > 0)
         {
+            val uploadHandler = MarkerDataHandler(contentResolver)
+
             val uploadMessage = Snackbar.make(clList_parent, R.string.upload_start, Snackbar.LENGTH_INDEFINITE)
             uploadMessage.show()
-            val json = Gson().toJson(savedMarkers);
-            MarkerDataHandler(contentResolver).saveMarkers(json = json ) {
+
+            // UPLOAD BITMAPS
+            val images = mutableListOf<ByteArray?>()
+            val stream = ByteArrayOutputStream()
+
+            savedMarkers?.forEach {
+                if(it.bitmap != null) {
+                    it.bitmap?.compress(Bitmap.CompressFormat.JPEG, 100, stream)
+                    images.add(stream.toByteArray())
+                }
+                else {
+                    images.add(null)
+                }
+            }
+            uploadHandler.saveIcons(images.toTypedArray()) {
+                println("SUCCESS? $it")
+            }
+
+            // REMOVE BITMAPS FOR MARKER DATA UPLOAD
+            savedMarkers?.forEach { it.bitmap = null }
+
+            // UPLOAD MARKER DATA WITHOUT BITMAP
+            val json = Gson().toJson(savedMarkers)
+            uploadHandler.saveMarkers(json = json ) {
                 uploadMessage.dismiss()
                 Snackbar.make(clList_parent,
                     if(it)R.string.upload_success else R.string.upload_fail,
@@ -165,7 +195,7 @@ class ListActivity: AppCompatActivity(){
                     .show()
             }
         }
-        else{
+        else {
             Snackbar.make(clList_parent, R.string.upload_reject, Snackbar.LENGTH_LONG)
                 .setBackgroundTint(getColor(R.color.colorAccent))
                 .show()
